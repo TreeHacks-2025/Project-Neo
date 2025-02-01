@@ -1,35 +1,28 @@
-require("dotenv").config();
-const express = require("express");
-const cors = require("cors");
-const mongoose = require("mongoose");
-const socketIo = require("socket.io");
-const http = require("http");
-
+const express = require('express');
+const axios = require('axios');
 const app = express();
-const server = http.createServer(app);
-const io = socketIo(server);
+const port = 3000;
 
-app.use(cors());
+// To parse JSON bodies
 app.use(express.json());
 
-// Import Routes
-const userRoutes = require("./routes");
-app.use("/api", userRoutes);
-
-// MongoDB Connection
-mongoose.connect(process.env.MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
-.then(() => console.log("MongoDB connected"))
-.catch(err => console.error(err));
-
-// WebSocket Connection
-io.on("connection", (socket) => {
-  console.log("New client connected");
-  socket.on("disconnect", () => console.log("Client disconnected"));
+// Basic endpoint for the application API
+app.get("/", (req, res) => {
+  res.json({ message: "Hello from Express App API!" });
 });
 
-// Start Server
-const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+// Example endpoint that connects to the FastAPI AI API
+app.get("/ai-data", async (req, res) => {
+  try {
+    // Call the FastAPI service running on port 8000
+    const response = await axios.get('http://localhost:8000/');
+    res.json(response.data);
+  } catch (error) {
+    console.error("Error calling the AI API:", error.message);
+    res.status(500).json({ error: "Failed to connect to AI API" });
+  }
+});
+
+app.listen(port, () => {
+  console.log(`Express server is running on http://localhost:${port}`);
+});
