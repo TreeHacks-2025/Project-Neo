@@ -1,7 +1,7 @@
 import openai
 
 def transcribe_audio(file_path: str) -> str:
-    transcript_response = openai.Audio.transcribe(
+    transcript_response = openai.audio.transcribe(
         model="whisper-1",
         file=open(file_path, "rb")
     )
