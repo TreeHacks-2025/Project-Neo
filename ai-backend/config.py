@@ -1,0 +1,4 @@
+import os
+import openai
+
+openai.api_key = os.getenv("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")
