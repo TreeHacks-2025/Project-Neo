@@ -14,17 +14,19 @@ const mongoURI = 'mongodb://127.0.0.1:27017/objFiles';
 
 // Function to start MongoDB automatically
 const startMongoDB = () => {
-    console.log('🔄 Checking if MongoDB is running...');
+    console.log('🔄 Checking if MongoDB is installed...');
     
     exec('mongod --version', (error, stdout, stderr) => {
         if (error) {
-            console.error('❌ MongoDB is not installed or not in PATH. Please install MongoDB.');
-            console.error(error)
-
+            console.error('❌ MongoDB is not installed or not in PATH.');
+            console.error('🔹 Install MongoDB from: https://www.mongodb.com/try/download/community');
+            console.error('📄 Full Error:', error);
             process.exit(1);
         }
 
-        // Start MongoDB if not already running
+        console.log('✅ MongoDB version detected:', stdout.trim());
+
+        console.log('🔄 Attempting to start MongoDB...');
         exec('mongod --dbpath ./data/db --logpath ./data/mongo.log --fork', (err, stdout, stderr) => {
             if (err) {
                 console.error('⚠️ MongoDB might already be running or failed to start.');
@@ -40,7 +42,7 @@ const startMongoDB = () => {
 const connectToMongoDB = () => {
     console.log('🔄 Attempting to connect to MongoDB...');
     
-    mongoose.connect(mongoURI)
+    mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true })
         .then(() => console.log('✅ MongoDB Connected Successfully'))
         .catch(err => {
             console.error('❌ MongoDB Connection Failed:', err.message);
@@ -61,26 +63,63 @@ conn.once('open', () => {
     console.log('✅ GridFS Initialized');
 });
 
+// ✅ FIX: Ensure GridFS Storage is properly defined
+const storage = new GridFsStorage({
+    url: mongoURI,
+    options: { useNewUrlParser: true, useUnifiedTopology: true },
+    file: async (req, file) => {
+        return {
+            filename: file.originalname,
+            bucketName: 'uploads',
+            metadata: { uploadedAt: new Date() }
+        };
+    }
+});
+const upload = multer({ storage });
+
 // Middleware
 app.use(bodyParser.json());
 app.use(cors());
 app.use(express.static('public'));
 
-// Upload File
+// ✅ FIX: Ensure MongoDB is connected before allowing uploads
 app.post('/upload', (req, res) => {
-    if (!conn.readyState) {
+    if (mongoose.connection.readyState !== 1) {
         return res.status(500).json({ message: '❌ MongoDB is not connected. Please try again later.' });
     }
 
-    const upload = multer({ storage }).single('objFile');
-    upload(req, res, (err) => {
+    upload.single('objFile')(req, res, async (err) => {
+        console.log('📂 Uploaded File Data:', req.file); // ✅ Debugging Log
+
         if (err) {
             return res.status(500).json({ message: '❌ File upload failed', error: err.message });
         }
-        if (!req.file) {
-            return res.status(400).json({ message: '❌ No file uploaded' });
+
+        console.log('📂 Uploaded File Data:', req.file); // ✅ Debugging Log
+
+        if (!req.file || !req.file.id) {
+            console.log('⚠️ req.file.id is missing, manually fetching from MongoDB...');
+            try {
+                const file = await mongoose.connection.db.collection('uploads.files')
+                    .findOne({ filename: req.file.filename });
+
+                if (!file) {
+                    return res.status(500).json({ message: '❌ File upload failed. Could not retrieve `_id`.' });
+                }
+
+                return res.json({
+                    message: '✅ File uploaded successfully',
+                    fileId: file._id
+                });
+            } catch (dbErr) {
+                return res.status(500).json({ message: '❌ Database error retrieving `_id`.', error: dbErr.message });
+            }
         }
-        res.json({ message: '✅ File uploaded successfully', fileId: req.file.id });
+
+        res.json({
+            message: '✅ File uploaded successfully',
+            fileId: req.file.id
+        });
     });
 });
 

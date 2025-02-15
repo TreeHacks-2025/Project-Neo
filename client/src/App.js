@@ -22,7 +22,7 @@ function App() {
         if (!file) return;
         const formData = new FormData();
         formData.append('objFile', file);
-
+        console.log(formData)
         try {
             const response = await axios.post('http://localhost:5000/upload', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
@@ -30,6 +30,7 @@ function App() {
             alert('File uploaded successfully');
             setUploadedFile(response.data.filename);
         } catch (err) {
+            console.log(formData)
             console.error(err);
             alert('Error uploading file');
         }
