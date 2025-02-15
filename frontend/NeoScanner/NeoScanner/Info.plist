@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Required for RoomPlan scanning -->
+    <key>NSCameraUsageDescription</key>
+    <string>This app requires camera access to scan the room.</string>
+    
+    <!-- Optional: If your app records audio -->
+    <key>NSMicrophoneUsageDescription</key>
+    <string>This app requires microphone access for voice input.</string>
+
+    <!-- Required for ARKit Scene Reconstruction -->
+    <key>ARKitSceneReconstruction</key>
+    <array>
+        <string>mesh</string>
+    </array>
+</dict>
+</plist>
